@@ -28,11 +28,280 @@ int eos_util_tx_header_set(const eos_transaction_header * const pstHeader, unsig
 
 int eos_util_tx_header_from_json(const cJSON * const pJson, eos_transaction_header * const pstHeader);
 
-int eos_util_tx_action_get(const unsigned char * const pbData, const size_t nDataLen, eos_action * const pstAction, size_t * const pnProcessDataLen);
+int eos_util_tx_action_get(const unsigned char * const pbData, const size_t nDataLen, eos_action * const pstAction, size_t * const pnProcessDataLen)
+{
+	int	iRtn = -1;
 
-int eos_util_tx_action_set(const eos_action * const pstAction, unsigned char * const pbData, size_t * const pnDataLen);
+	size_t	i = 0, iOffset = 0, iProcessLen = 0;
 
-int eos_util_tx_action_clear(eos_action * const pstAction);
+	if (!pbData || !nDataLen || !pstAction)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	eos_util_tx_action_clear(pstAction);
+
+	iOffset = 0;
+
+	// 	account_name				account;
+	iRtn = eos_util_tx_name_get(pbData + iOffset, nDataLen - iOffset, pstAction->account, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	action_name					name;
+	iRtn = eos_util_tx_name_get(pbData + iOffset, nDataLen - iOffset, pstAction->name, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	unsigned_int				auth_count;
+	iRtn = eos_util_tx_uint_get(pbData + iOffset, nDataLen - iOffset, &pstAction->auth_count, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	eos_permission_level		*authorization;
+	if (pstAction->auth_count > 0)
+	{
+		pstAction->authorization = (eos_permission_level *)malloc((size_t)(pstAction->auth_count) * sizeof(eos_permission_level));
+		if (pstAction->authorization == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstAction->authorization, 0, sizeof(eos_permission_level) * (size_t)(pstAction->auth_count));
+
+		for (i = 0; i < pstAction->auth_count; i++)
+		{
+			iRtn = eos_util_tx_permission_get(pbData + iOffset, nDataLen - iOffset, pstAction->authorization + i, &iProcessLen);
+			if (iRtn)
+			{
+				iRtn = -1;
+				goto END;
+			}
+			iOffset += iProcessLen;
+		}
+	}
+
+	// 	unsigned_int				data_len;
+	iRtn = eos_util_tx_uint_get(pbData + iOffset, nDataLen - iOffset, &pstAction->data_len, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+	// 	unsigned char				*data;
+	if (pstAction->data_len > 0)
+	{
+		if (((size_t)pstAction->data_len) > (nDataLen - iOffset))
+		{
+			iRtn = -1;
+			goto END;
+		}
+
+		pstAction->data = (unsigned char *)malloc((size_t)(pstAction->data_len));
+		if (pstAction->data == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstAction->data, 0, (size_t)(pstAction->data_len));
+
+		memcpy(pstAction->data, pbData + iOffset, (size_t)(pstAction->data_len));
+		iOffset += (size_t)(pstAction->data_len);
+	}
+
+	if (pnProcessDataLen)
+	{
+		*pnProcessDataLen = iOffset;
+	}
+
+	iRtn = 0;
+END:
+	if (iRtn != 0)
+	{
+		eos_util_tx_action_clear(pstAction);
+	}
+	return iRtn;
+}
+
+int eos_util_tx_action_set(const eos_action * const pstAction, unsigned char * const pbData, size_t * const pnDataLen)
+{
+	int	iRtn = -1;
+
+	size_t	i = 0, iOffset = 0, iProcessLen = 0;
+
+	if (!pstAction || !pnDataLen)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	// 	char						account[EOS_NAME_MAX_LEN];
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_name_set(pstAction->account, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_name_set(pstAction->account, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	char						name[EOS_NAME_MAX_LEN];
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_name_set(pstAction->name, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_name_set(pstAction->name, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	unsigned_int				auth_count;
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_uint_set(&pstAction->auth_count, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_uint_set(&pstAction->auth_count, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	eos_permission_level		*authorization;
+	for (i = 0; i < pstAction->auth_count; i++)
+	{
+		if (pbData)
+		{
+			iProcessLen = (*pnDataLen - iOffset);
+			iRtn = eos_util_tx_permission_set(pstAction->authorization + i, pbData + iOffset, &iProcessLen);
+		}
+		else
+		{
+			iRtn = eos_util_tx_permission_set(pstAction->authorization + i, 0, &iProcessLen);
+		}
+		if (iRtn)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		iOffset += iProcessLen;
+	}
+
+	// 	unsigned_int				data_len;
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_uint_set(&pstAction->data_len, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_uint_set(&pstAction->data_len, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	unsigned char				*data;
+	if (pbData && pstAction->data_len)
+	{
+		if ((*pnDataLen - iOffset) < (size_t)pstAction->data_len)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memcpy(pbData + iOffset, pstAction->data, (size_t)(pstAction->data_len));
+	}
+	iOffset += (size_t)(pstAction->data_len);
+
+	*pnDataLen = iOffset;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
+
+int eos_util_tx_action_clear(eos_action * const pstAction)
+{
+	int	iRtn = -1;
+
+	size_t	i = 0;
+
+	if (!pstAction)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	// 	char						account[EOS_NAME_MAX_LEN];
+	memset(pstAction->account, 0, sizeof(pstAction->account));
+
+	// 	char						name[EOS_NAME_MAX_LEN];
+	memset(pstAction->account, 0, sizeof(pstAction->name));
+
+	// 	eos_permission_level		*authorization;
+	if (pstAction->authorization)
+	{
+		for (i = 0; i < pstAction->auth_count; i++)
+		{
+			memset(pstAction->authorization + i, 0, sizeof(eos_permission_level));
+		}
+		free(pstAction->authorization);
+		pstAction->authorization = 0;
+	}
+	// 	unsigned_int				auth_count;
+	pstAction->auth_count = 0;
+
+	// 	unsigned char				*data;
+	if (pstAction->data)
+	{
+		free(pstAction->data);
+		pstAction->data = 0;
+	}
+	// 	unsigned_int				data_len;
+	pstAction->data_len = 0;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 int eos_util_tx_action_from_json(const cJSON * const pJson, eos_action * const pstAction);
 
