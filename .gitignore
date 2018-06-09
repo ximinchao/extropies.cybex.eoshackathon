@@ -1,0 +1,11 @@
+./tools
+/EWalletUtil/Debug
+/EWalletUtil/EWallet/Debug
+/EWalletUtil/EWallet/Release
+/EWalletUtil/EWallet/x64
+/EWalletUtil/Release
+/EWalletUtil/x64
+/EWalletUtil/EWalletUtil.VC.db
+/EWalletUtil/EWalletUtil.VC.VC.opendb
+/tools
+/EWalletUtil/.vs/EWalletUtil/v14
