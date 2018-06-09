@@ -54,7 +54,73 @@ int eos_util_tx_uint_get(const unsigned char * const pbData, const size_t nDataL
 
 int eos_util_tx_uint_set(const unsigned_int * const pstUint, unsigned char * const pbData, size_t * const pnDataLen);
 
-int eos_util_tx_name_get(const unsigned char * const pbData, const size_t nDataLen, char szName[EOS_NAME_MAX_LEN], size_t * const pnProcessDataLen);
+int eos_util_tx_name_get(const unsigned char * const pbData, const size_t nDataLen, char szName[EOS_NAME_MAX_LEN], size_t * const pnProcessDataLen)
+{
+	int	iRtn = -1;
+
+	size_t				i = 0, iOffset = 0;
+
+	uint64_t			value = 0, tmp = 0;
+	char				c = 0;
+	static const char	*charmap = ".12345abcdefghijklmnopqrstuvwxyz";
+
+	if (!pbData || !nDataLen || !szName)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	if (sizeof(value) > (nDataLen - iOffset))
+	{
+		iRtn = -1;
+		goto END;
+	}
+	value = 0;
+	for (i = 0; i < sizeof(value); i++)
+	{
+		value |= ((uint64_t)pbData[iOffset + i]) << (i * 8);
+	}
+	iOffset += sizeof(value);
+
+	memset(szName, 0, EOS_NAME_MAX_LEN);
+	tmp = value;
+	for (i = 0; i <= 12; i++)
+	{
+		c = charmap[tmp & (i == 0 ? 0x0f : 0x1f)];
+		szName[12 - i] = c;
+		tmp >>= (i == 0 ? 4 : 5);
+	}
+
+	i = 12;
+	do
+	{
+		if (szName[i] == '.')
+		{
+			szName[i] = '\0';
+		}
+		else
+		{
+			break;
+		}
+
+		if (i == 0)
+		{
+			break;
+		}
+		i--;
+	} while (1);
+
+	if (pnProcessDataLen)
+	{
+		*pnProcessDataLen = iOffset;
+	}
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 static uint64_t eos_util_tx_inner_char_to_symbol(const char c)
 {
@@ -68,7 +134,56 @@ static uint64_t eos_util_tx_inner_char_to_symbol(const char c)
 // to its 5-bit slot starting with the highest slot for the first char.
 // The 13th char, if str is long enough, is encoded into 4-bit chunk
 // and placed in the lowest 4 bits. 64 = 12 * 5 + 4
-int eos_util_tx_name_set(const char szName[EOS_NAME_MAX_LEN], unsigned char * const pbData, size_t * const pnDataLen);
+int eos_util_tx_name_set(const char szName[EOS_NAME_MAX_LEN], unsigned char * const pbData, size_t * const pnDataLen)
+{
+	int	iRtn = -1;
+
+	size_t			i = 0, iOffset = 0;
+	uint64_t		name = 0;
+	const uint64_t	iFilterMask = 0xff;
+
+	if (!szName || !pnDataLen)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	name = 0;
+	for (; szName[i] && i < 12; ++i)
+	{
+		// NOTE: char_to_symbol() returns char type, and without this explicit
+		// expansion to uint64 type, the compilation fails at the point of usage
+		// of string_to_name(), where the usage requires constant (compile time) expression.
+		name |= (eos_util_tx_inner_char_to_symbol(szName[i]) & 0x1f) << (64 - 5 * (i + 1));
+	}
+
+	// The for-loop encoded up to 60 high bits into uint64 'name' variable,
+	// if (strlen(str) > 12) then encode str[12] into the low (remaining)
+	// 4 bits of 'name'
+	if (i == 12)
+		name |= eos_util_tx_inner_char_to_symbol(szName[12]) & 0x0F;
+
+	iOffset = 0;
+	if (pbData)
+	{
+		if ((*pnDataLen - iOffset) < sizeof(name))
+		{
+			iRtn = -1;
+			goto END;
+		}
+		for (i = 0; i < sizeof(name); i++)
+		{
+			pbData[iOffset + i] = (unsigned char)((name >> (i * 8)) & iFilterMask);
+		}
+	}
+	iOffset += sizeof(name);
+
+	*pnDataLen = iOffset;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 int eos_util_tx_name_from_json(const cJSON * const pJson, char szName[EOS_NAME_MAX_LEN]);
 
