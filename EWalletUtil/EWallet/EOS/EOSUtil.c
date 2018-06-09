@@ -357,7 +357,167 @@ END:
 	return iRtn;
 }
 
-int eos_util_tx_from_json(const cJSON * const pJson, eos_transaction * const pstTx);
+int eos_util_tx_from_json(const cJSON * const pJson, eos_transaction * const pstTx)
+{
+	int	iRtn = -1;
+
+	size_t	i = 0;
+	cJSON	*pActions = 0, *pNode = 0, *pTransExts = 0;
+	size_t	nActionCount = 0, nTransExtCount = 0;
+
+	if (!pJson || !pstTx)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	eos_util_tx_clear(pstTx);
+
+	// 	eos_transaction_header	header;
+	iRtn = eos_util_tx_header_from_json(pJson, &pstTx->header);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	// 	unsigned_int			cf_actions_count;
+	pActions = cJSON_GetObjectItem(pJson, "context_free_actions");
+	if (!pActions)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pActions->type != cJSON_Array)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	nActionCount = cJSON_GetArraySize(pActions);
+	pstTx->cf_actions_count = (unsigned_int)nActionCount;
+
+	// 	eos_action				*context_free_actions;
+	if (pstTx->cf_actions_count > 0)
+	{
+		pstTx->context_free_actions = (eos_action *)malloc((size_t)(pstTx->cf_actions_count) * sizeof(eos_action));
+		if (pstTx->context_free_actions == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstTx->context_free_actions, 0, sizeof(eos_action) * (size_t)(pstTx->cf_actions_count));
+
+		for (i = 0; i < pstTx->cf_actions_count; i++)
+		{
+			pNode = cJSON_GetArrayItem(pActions, (int)i);
+			if (!pNode)
+			{
+				iRtn = -1;
+				goto END;
+			}
+			iRtn = eos_util_tx_action_from_json(pNode, pstTx->context_free_actions + i);
+			if (iRtn)
+			{
+				iRtn = -1;
+				goto END;
+			}
+		}
+	}
+
+	// 	unsigned_int			actions_count;
+	pActions = cJSON_GetObjectItem(pJson, "actions");
+	if (!pActions)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pActions->type != cJSON_Array)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	nActionCount = cJSON_GetArraySize(pActions);
+	pstTx->actions_count = (unsigned_int)nActionCount;
+
+	// 	eos_action				*actions;
+	if (pstTx->actions_count > 0)
+	{
+		pstTx->actions = (eos_action *)malloc((size_t)(pstTx->actions_count) * sizeof(eos_action));
+		if (pstTx->actions == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstTx->actions, 0, sizeof(eos_action) * (size_t)(pstTx->actions_count));
+
+		for (i = 0; i < pstTx->actions_count; i++)
+		{
+			pNode = cJSON_GetArrayItem(pActions, (int)i);
+			if (!pNode)
+			{
+				iRtn = -1;
+				goto END;
+			}
+			iRtn = eos_util_tx_action_from_json(pNode, pstTx->actions + i);
+			if (iRtn)
+			{
+				iRtn = -1;
+				goto END;
+			}
+		}
+	}
+
+	// 	unsigned_int				trans_ext_count;
+	pTransExts = cJSON_GetObjectItem(pJson, "transaction_extensions");
+	if (!pTransExts)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pTransExts->type != cJSON_Array)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	nTransExtCount = cJSON_GetArraySize(pTransExts);
+	pstTx->trans_ext_count = (unsigned_int)nTransExtCount;
+
+	// 	eos_transaction_extension	*transaction_extensions;
+	if (pstTx->trans_ext_count > 0)
+	{
+		pstTx->transaction_extensions = (eos_transaction_extension *)malloc((size_t)(pstTx->trans_ext_count) * sizeof(eos_transaction_extension));
+		if (pstTx->transaction_extensions == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstTx->transaction_extensions, 0, sizeof(eos_transaction_extension) * (size_t)(pstTx->trans_ext_count));
+
+		for (i = 0; i < pstTx->trans_ext_count; i++)
+		{
+			pNode = cJSON_GetArrayItem(pTransExts, (int)i);
+			if (!pNode)
+			{
+				iRtn = -1;
+				goto END;
+			}
+			iRtn = eos_util_tx_trans_ext_from_json(pNode, pstTx->transaction_extensions + i);
+			if (iRtn)
+			{
+				iRtn = -1;
+				goto END;
+			}
+		}
+	}
+
+	iRtn = 0;
+END:
+	if (iRtn != 0)
+	{
+		eos_util_tx_clear(pstTx);
+	}
+	return iRtn;
+}
 
 int eos_util_tx_header_get(const unsigned char * const pbData, const size_t nDataLen, eos_transaction_header * const pstHeader, size_t * const pnProcessDataLen)
 {
@@ -562,7 +722,119 @@ END:
 	return iRtn;
 }
 
-int eos_util_tx_header_from_json(const cJSON * const pJson, eos_transaction_header * const pstHeader);
+int eos_util_tx_header_from_json(const cJSON * const pJson, eos_transaction_header * const pstHeader)
+{
+	int	iRtn = -1;
+
+	cJSON		*pNode = 0;
+
+	struct tm	*stUTCTM = 0, *stLocalTM = 0;
+	time_t		nUTCTime = 0, nLocalTime = 0;
+	signed long	nTimeDiff = 0;
+
+	struct tm	stDestTM;
+	time_t		nDestTime = 0;
+
+	if (!pJson || !pstHeader)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	// 	time_point_sec		expiration;   ///< the time at which a transaction expires
+	nUTCTime = time(0); //UTC
+	stLocalTM = gmtime(&nUTCTime); //UTC
+	nLocalTime = mktime(stLocalTM); //local
+	nTimeDiff = (signed long)(nUTCTime - nLocalTime);
+
+	pNode = cJSON_GetObjectItem(pJson, "expiration");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	sscanf(pNode->valuestring, "%04d-%02d-%02dT%02d:%02d:%02d", &stDestTM.tm_year, &stDestTM.tm_mon, &stDestTM.tm_mday, &stDestTM.tm_hour, &stDestTM.tm_min, &stDestTM.tm_sec);
+	stDestTM.tm_year -= 1900;
+	stDestTM.tm_mon -= 1;
+	stDestTM.tm_isdst = 0;
+
+	nDestTime = mktime(&stDestTM) + nTimeDiff;
+	pstHeader->expiration = (time_point_sec)nDestTime;
+
+	// 	uint16_t			ref_block_num; ///< specifies a block num in the last 2^16 blocks.
+	pNode = cJSON_GetObjectItem(pJson, "ref_block_num");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pNode->type != cJSON_Number)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstHeader->ref_block_num = pNode->valueint;
+
+	// 	uint32_t			ref_block_prefix; ///< specifies the lower 32 bits of the block id at get_ref_blocknum
+	pNode = cJSON_GetObjectItem(pJson, "ref_block_prefix");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pNode->type != cJSON_String) //number too large to contain by int, so we process it as string
+	{
+		iRtn = -1;
+		goto END;
+	}
+	sscanf(pNode->valuestring, "%u", &pstHeader->ref_block_prefix);
+
+	// 	unsigned_int		max_net_usage_words; /// upper limit on total network bandwidth (in 8 byte words) billed for this transaction
+	pNode = cJSON_GetObjectItem(pJson, "max_net_usage_words");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pNode->type != cJSON_Number)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstHeader->max_net_usage_words = pNode->valueint;
+
+	// 	uint8_t				max_cpu_usage_ms; /// upper limit on the total CPU time billed for this transaction
+	pNode = cJSON_GetObjectItem(pJson, "max_cpu_usage_ms");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pNode->type != cJSON_Number)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstHeader->max_cpu_usage_ms = pNode->valueint;
+
+	// 	unsigned_int		delay_sec; /// number of seconds to delay this transaction for during which it may be canceled.
+	pNode = cJSON_GetObjectItem(pJson, "delay_sec");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pNode->type != cJSON_Number)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstHeader->delay_sec = pNode->valueint;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 int eos_util_tx_action_get(const unsigned char * const pbData, const size_t nDataLen, eos_action * const pstAction, size_t * const pnProcessDataLen)
 {
@@ -839,7 +1111,151 @@ END:
 	return iRtn;
 }
 
-int eos_util_tx_action_from_json(const cJSON * const pJson, eos_action * const pstAction);
+int eos_util_tx_action_from_json(const cJSON * const pJson, eos_action * const pstAction)
+{
+	int	iRtn = -1;
+
+	size_t	i = 0;
+	cJSON	*pPermissions = 0, *pNode = 0;
+	size_t	nPermissionCount = 0, nDataSize = 0;
+
+	if (!pJson || !pstAction)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	eos_util_tx_action_clear(pstAction);
+
+	// 	account_name				account;
+	pNode = cJSON_GetObjectItem(pJson, "account");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iRtn = eos_util_tx_name_from_json(pNode, pstAction->account);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	// 	action_name					name;
+	pNode = cJSON_GetObjectItem(pJson, "name");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iRtn = eos_util_tx_name_from_json(pNode, pstAction->name);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	// 	unsigned_int				auth_count;
+	pPermissions = cJSON_GetObjectItem(pJson, "authorization");
+	if (!pPermissions)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pPermissions->type != cJSON_Array)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	nPermissionCount = cJSON_GetArraySize(pPermissions);
+	pstAction->auth_count = (unsigned_int)nPermissionCount;
+
+	// 	eos_permission_level		*authorization;
+	if (pstAction->auth_count > 0)
+	{
+		pstAction->authorization = (eos_permission_level *)malloc((size_t)(pstAction->auth_count) * sizeof(eos_permission_level));
+		if (pstAction->authorization == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstAction->authorization, 0, sizeof(eos_permission_level) * (size_t)(pstAction->auth_count));
+
+		for (i = 0; i < pstAction->auth_count; i++)
+		{
+			pNode = cJSON_GetArrayItem(pPermissions, (int)i);
+			if (!pNode)
+			{
+				iRtn = -1;
+				goto END;
+			}
+
+			iRtn = eos_util_tx_permission_from_json(pNode, pstAction->authorization + i);
+			if (iRtn)
+			{
+				iRtn = -1;
+				goto END;
+			}
+		}
+	}
+
+	// 	unsigned_int				data_len;
+	pNode = cJSON_GetObjectItem(pJson, "data");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pNode->type != cJSON_String)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	if (strlen(pNode->valuestring) > 0)
+	{
+		iRtn = CommUtil_String2Hex(pNode->valuestring, 0, &nDataSize);
+		if (iRtn != COMMUTIL_RET_OK)
+		{
+			iRtn = -1;
+			goto END;
+		}
+	}
+	else
+	{
+		nDataSize = 0;
+	}
+	pstAction->data_len = (unsigned_int)nDataSize;
+
+	// 	unsigned char				*data;
+	if (pstAction->data_len > 0)
+	{
+		pstAction->data = (unsigned char *)malloc((size_t)(pstAction->data_len));
+		if (pstAction->data == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstAction->data, 0, (size_t)(pstAction->data_len));
+
+		nDataSize = pstAction->data_len;
+		iRtn = CommUtil_String2Hex(pNode->valuestring, pstAction->data, &nDataSize);
+		if (iRtn != COMMUTIL_RET_OK)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		pstAction->data_len = (unsigned_int)nDataSize;
+	}
+
+	iRtn = 0;
+END:
+	if (iRtn != 0)
+	{
+		eos_util_tx_action_clear(pstAction);
+	}
+	return iRtn;
+}
 
 int eos_util_tx_trans_ext_get(const unsigned char * const pbData, const size_t nDataLen, eos_transaction_extension * const pstTransExt, size_t * const pnProcessDataLen)
 {
@@ -1009,7 +1425,87 @@ END:
 	return iRtn;
 }
 
-int eos_util_tx_trans_ext_from_json(const cJSON * const pJson, eos_transaction_extension * const pstTransExt);
+int eos_util_tx_trans_ext_from_json(const cJSON * const pJson, eos_transaction_extension * const pstTransExt)
+{
+	int	iRtn = -1;
+
+	size_t	i = 0;
+	cJSON	*pExtValue = 0, *pNode = 0;
+	size_t	nExtValueCount = 0, nDataSize = 0;
+
+	if (!pJson || !pstTransExt)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	eos_util_tx_trans_ext_clear(pstTransExt);
+
+	// 	uint16_t		ext_type;
+	pNode = cJSON_GetObjectItem(pJson, "ext_type");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pNode->type != cJSON_Number)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstTransExt->ext_type = pNode->valueint;
+
+	// 	unsigned_int	ext_value_count;
+	pNode = cJSON_GetObjectItem(pJson, "ext_value");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	if (pNode->type != cJSON_String)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iRtn = CommUtil_String2Hex(pNode->valuestring, 0, &nExtValueCount);
+	if (iRtn != COMMUTIL_RET_OK)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstTransExt->ext_value_count = (unsigned_int)nExtValueCount;
+
+	// 	char			*ext_value;
+	if (pstTransExt->ext_value_count > 0)
+	{
+		pstTransExt->ext_value = (char *)malloc((size_t)(pstTransExt->ext_value_count));
+		if (pstTransExt->ext_value == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstTransExt->ext_value, 0, (size_t)(pstTransExt->ext_value_count));
+
+		nDataSize = pstTransExt->ext_value_count;
+		//iRtn = CommUtil_String2Hex(pNode->valuestring, (unsigned char*)pstTransExt->ext_value, &nDataSize);
+		strcpy(pstTransExt->ext_value, pNode->valuestring);
+		if (iRtn != COMMUTIL_RET_OK)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		pstTransExt->ext_value_count = (unsigned_int)nDataSize;
+	}
+
+	iRtn = 0;
+END:
+	if (iRtn != 0)
+	{
+		eos_util_tx_trans_ext_clear(pstTransExt);
+	}
+	return iRtn;
+}
 
 int eos_util_tx_permission_get(const unsigned char * const pbData, const size_t nDataLen, eos_permission_level * const pstPermission, size_t * const pnProcessDataLen)
 {
@@ -1108,7 +1604,50 @@ END:
 	return iRtn;
 }
 
-int eos_util_tx_permission_from_json(const cJSON * const pJson, eos_permission_level * const pstPermission);
+int eos_util_tx_permission_from_json(const cJSON * const pJson, eos_permission_level * const pstPermission)
+{
+	int	iRtn = -1;
+
+	cJSON	*pNode = 0;
+
+	if (!pJson || !pstPermission)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	// 	char	actor[EOS_NAME_MAX_LEN];
+	pNode = cJSON_GetObjectItem(pJson, "actor");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iRtn = eos_util_tx_name_from_json(pNode, pstPermission->actor);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	// 	char	permission[EOS_NAME_MAX_LEN];
+	pNode = cJSON_GetObjectItem(pJson, "permission");
+	if (!pNode)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iRtn = eos_util_tx_name_from_json(pNode, pstPermission->permission);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 int eos_util_tx_uint_get(const unsigned char * const pbData, const size_t nDataLen, unsigned_int * const pstUint, size_t * const pnProcessDataLen)
 {
@@ -1315,6 +1854,60 @@ END:
 	return iRtn;
 }
 
-int eos_util_tx_name_from_json(const cJSON * const pJson, char szName[EOS_NAME_MAX_LEN]);
+int eos_util_tx_name_from_json(const cJSON * const pJson, char szName[EOS_NAME_MAX_LEN])
+{
+	int	iRtn = -1;
 
-int eos_util_tx_from_string(const char * const szJsonString, eos_transaction * const pstTx);
+	if (!pJson || !szName)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	if (pJson->type != cJSON_String)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	strcpy(szName, pJson->valuestring);
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
+
+int eos_util_tx_from_string(const char * const szJsonString, eos_transaction * const pstTx)
+{
+	int	iRtn = -1;
+
+	cJSON	*pJson = 0;
+
+	if (!szJsonString || !pstTx)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	pJson = cJSON_Parse(szJsonString);
+	if (!pJson)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iRtn = eos_util_tx_from_json(pJson, pstTx);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iRtn = 0;
+END:
+	if (pJson)
+	{
+		cJSON_Delete(pJson);
+		pJson = 0;
+	}
+	return iRtn;
+}
