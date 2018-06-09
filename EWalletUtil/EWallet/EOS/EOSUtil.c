@@ -14,17 +14,553 @@ int eos_util_tx_signature_get(const unsigned char * const pbData, const size_t n
 int eos_util_tx_signature_set(const eos_signature_type * const pstSingature, unsigned char * const pbData, size_t * const pnDataLen);
 int eos_util_tx_signature_clear(eos_signature_type * const pstSingature);
 
-int eos_util_tx_get(const unsigned char * const pbData, const size_t nDataLen, eos_transaction * const pstTx, size_t * const pnProcessDataLen);
+int eos_util_tx_get(const unsigned char * const pbData, const size_t nDataLen, eos_transaction * const pstTx, size_t * const pnProcessDataLen)
+{
+	int	iRtn = -1;
 
-int eos_util_tx_set(const eos_transaction * const pstTx, unsigned char * const pbData, size_t * const pnDataLen);
+	size_t	i = 0, iOffset = 0, iProcessLen = 0;
 
-int eos_util_tx_clear(eos_transaction * const pstTx);
+	if (!pbData || !nDataLen || !pstTx)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	eos_util_tx_clear(pstTx);
+
+	iOffset = 0;
+
+	// 	eos_transaction_header	header;
+	iRtn = eos_util_tx_header_get(pbData + iOffset, nDataLen - iOffset, &pstTx->header, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	unsigned_int			cf_actions_count;
+	iRtn = eos_util_tx_uint_get(pbData + iOffset, nDataLen - iOffset, &pstTx->cf_actions_count, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	eos_action				*context_free_actions;
+	if (pstTx->cf_actions_count > 0)
+	{
+		pstTx->context_free_actions = (eos_action *)malloc((size_t)(pstTx->cf_actions_count) * sizeof(eos_action));
+		if (pstTx->context_free_actions == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstTx->context_free_actions, 0, sizeof(eos_action) * (size_t)(pstTx->cf_actions_count));
+
+		for (i = 0; i < pstTx->cf_actions_count; i++)
+		{
+			iRtn = eos_util_tx_action_get(pbData + iOffset, nDataLen - iOffset, pstTx->context_free_actions + i, &iProcessLen);
+			if (iRtn)
+			{
+				iRtn = -1;
+				goto END;
+			}
+			iOffset += iProcessLen;
+		}
+	}
+
+	// 	unsigned_int			actions_count;
+	iRtn = eos_util_tx_uint_get(pbData + iOffset, nDataLen - iOffset, &pstTx->actions_count, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	eos_action				*actions;
+	if (pstTx->actions_count > 0)
+	{
+		pstTx->actions = (eos_action *)malloc((size_t)(pstTx->actions_count) * sizeof(eos_action));
+		if (pstTx->actions == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstTx->actions, 0, sizeof(eos_action) * (size_t)(pstTx->actions_count));
+
+		for (i = 0; i < pstTx->actions_count; i++)
+		{
+			iRtn = eos_util_tx_action_get(pbData + iOffset, nDataLen - iOffset, pstTx->actions + i, &iProcessLen);
+			if (iRtn)
+			{
+				iRtn = -1;
+				goto END;
+			}
+			iOffset += iProcessLen;
+		}
+	}
+
+	// 	unsigned_int				trans_ext_count;
+	iRtn = eos_util_tx_uint_get(pbData + iOffset, nDataLen - iOffset, &pstTx->trans_ext_count, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// eos_transaction_extension	*transaction_extensions;
+	if (pstTx->trans_ext_count > 0)
+	{
+		pstTx->transaction_extensions = (eos_transaction_extension *)malloc((size_t)(pstTx->trans_ext_count) * sizeof(eos_transaction_extension));
+		if (pstTx->transaction_extensions == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstTx->transaction_extensions, 0, sizeof(eos_transaction_extension) * (size_t)(pstTx->trans_ext_count));
+
+		for (i = 0; i < pstTx->trans_ext_count; i++)
+		{
+			iRtn = eos_util_tx_trans_ext_get(pbData + iOffset, nDataLen - iOffset, pstTx->transaction_extensions + i, &iProcessLen);
+			if (iRtn)
+			{
+				iRtn = -1;
+				goto END;
+			}
+			iOffset += iProcessLen;
+		}
+	}
+
+	if (pnProcessDataLen)
+	{
+		*pnProcessDataLen = iOffset;
+	}
+
+	iRtn = 0;
+END:
+	if (iRtn != 0)
+	{
+		eos_util_tx_clear(pstTx);
+	}
+	return iRtn;
+}
+
+int eos_util_tx_set(const eos_transaction * const pstTx, unsigned char * const pbData, size_t * const pnDataLen)
+{
+	int	iRtn = -1;
+
+	size_t	i = 0, iOffset = 0, iProcessLen = 0;
+
+	if (!pstTx || !pnDataLen)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	// 	eos_transaction_header	header;
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_header_set(&pstTx->header, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_header_set(&pstTx->header, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	unsigned_int			cf_actions_count;
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_uint_set(&pstTx->cf_actions_count, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_uint_set(&pstTx->cf_actions_count, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	eos_action				*context_free_actions;
+	for (i = 0; i < pstTx->cf_actions_count; i++)
+	{
+		if (pbData)
+		{
+			iProcessLen = (*pnDataLen - iOffset);
+			iRtn = eos_util_tx_action_set(pstTx->context_free_actions + i, pbData + iOffset, &iProcessLen);
+		}
+		else
+		{
+			iRtn = eos_util_tx_action_set(pstTx->context_free_actions + i, 0, &iProcessLen);
+		}
+		if (iRtn)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		iOffset += iProcessLen;
+	}
+
+	// 	unsigned_int			actions_count;
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_uint_set(&pstTx->actions_count, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_uint_set(&pstTx->actions_count, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	eos_action				*actions;
+	for (i = 0; i < pstTx->actions_count; i++)
+	{
+		if (pbData)
+		{
+			iProcessLen = (*pnDataLen - iOffset);
+			iRtn = eos_util_tx_action_set(pstTx->actions + i, pbData + iOffset, &iProcessLen);
+		}
+		else
+		{
+			iRtn = eos_util_tx_action_set(pstTx->actions + i, 0, &iProcessLen);
+		}
+		if (iRtn)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		iOffset += iProcessLen;
+	}
+
+	// 	unsigned_int				trans_ext_count;
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_uint_set(&pstTx->trans_ext_count, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_uint_set(&pstTx->trans_ext_count, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	eos_transaction_extension	*transaction_extensions;
+	for (i = 0; i < pstTx->trans_ext_count; i++)
+	{
+		if (pbData)
+		{
+			iProcessLen = (*pnDataLen - iOffset);
+			iRtn = eos_util_tx_trans_ext_set(pstTx->transaction_extensions + i, pbData + iOffset, &iProcessLen);
+		}
+		else
+		{
+			iRtn = eos_util_tx_trans_ext_set(pstTx->transaction_extensions + i, 0, &iProcessLen);
+		}
+		if (iRtn)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		iOffset += iProcessLen;
+	}
+
+	*pnDataLen = iOffset;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
+
+int eos_util_tx_clear(eos_transaction * const pstTx)
+{
+	int	iRtn = -1;
+
+	size_t	i = 0;
+
+	if (!pstTx)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	// 	eos_transaction_header	header;
+	memset(&pstTx->header, 0, sizeof(pstTx->header));
+
+	// 	eos_action				*context_free_actions;
+	if (pstTx->context_free_actions)
+	{
+		for (i = 0; i < pstTx->cf_actions_count; i++)
+		{
+			eos_util_tx_action_clear(pstTx->context_free_actions + i);
+		}
+		free(pstTx->context_free_actions);
+		pstTx->context_free_actions = 0;
+	}
+	// 	unsigned_int			cf_actions_count;
+	pstTx->cf_actions_count = 0;
+
+	// 	eos_action				*actions;
+	if (pstTx->actions)
+	{
+		for (i = 0; i < pstTx->actions_count; i++)
+		{
+			eos_util_tx_action_clear(pstTx->actions + i);
+		}
+		free(pstTx->actions);
+		pstTx->actions = 0;
+	}
+	// 	unsigned_int			actions_count;
+	pstTx->actions_count = 0;
+
+	// 	eos_transaction_extension	*transaction_extensions;
+	if (pstTx->transaction_extensions)
+	{
+		for (i = 0; i < pstTx->trans_ext_count; i++)
+		{
+			eos_util_tx_trans_ext_clear(pstTx->transaction_extensions + i);
+		}
+		free(pstTx->transaction_extensions);
+		pstTx->transaction_extensions = 0;
+	}
+	// 	unsigned_int				trans_ext_count;
+	pstTx->trans_ext_count = 0;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 int eos_util_tx_from_json(const cJSON * const pJson, eos_transaction * const pstTx);
 
-int eos_util_tx_header_get(const unsigned char * const pbData, const size_t nDataLen, eos_transaction_header * const pstHeader, size_t * const pnProcessDataLen);
+int eos_util_tx_header_get(const unsigned char * const pbData, const size_t nDataLen, eos_transaction_header * const pstHeader, size_t * const pnProcessDataLen)
+{
+	int	iRtn = -1;
 
-int eos_util_tx_header_set(const eos_transaction_header * const pstHeader, unsigned char * const pbData, size_t * const pnDataLen);
+	size_t	i = 0, iOffset = 0, iProcessLen = 0;
+
+	if (!pbData || !nDataLen || !pstHeader)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	// 	time_point_sec		expiration;   ///< the time at which a transaction expires
+	if (sizeof(pstHeader->expiration) > (nDataLen - iOffset))
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstHeader->expiration = 0;
+	for (i = 0; i < sizeof(pstHeader->expiration); i++)
+	{
+		pstHeader->expiration |= ((time_point_sec)pbData[iOffset + i]) << (i * 8);
+	}
+	iOffset += sizeof(pstHeader->expiration);
+
+	// 	uint16_t			ref_block_num; ///< specifies a block num in the last 2^16 blocks.
+	if (sizeof(pstHeader->ref_block_num) > (nDataLen - iOffset))
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstHeader->ref_block_num = 0;
+	for (i = 0; i < sizeof(pstHeader->ref_block_num); i++)
+	{
+		pstHeader->ref_block_num |= ((uint16_t)pbData[iOffset + i]) << (i * 8);
+	}
+	iOffset += sizeof(pstHeader->ref_block_num);
+
+	// 	uint32_t			ref_block_prefix; ///< specifies the lower 32 bits of the block id at get_ref_blocknum
+	if (sizeof(pstHeader->ref_block_prefix) > (nDataLen - iOffset))
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstHeader->ref_block_prefix = 0;
+	for (i = 0; i < sizeof(pstHeader->ref_block_prefix); i++)
+	{
+		pstHeader->ref_block_prefix |= ((uint32_t)pbData[iOffset + i]) << (i * 8);
+	}
+	iOffset += sizeof(pstHeader->ref_block_prefix);
+
+	// 	unsigned_int		max_net_usage_words; /// upper limit on total network bandwidth (in 8 byte words) billed for this transaction
+	iRtn = eos_util_tx_uint_get(pbData + iOffset, nDataLen - iOffset, &pstHeader->max_net_usage_words, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	uint8_t				max_cpu_usage_ms; /// upper limit on the total CPU time billed for this transaction
+	if (sizeof(pstHeader->max_cpu_usage_ms) > (nDataLen - iOffset))
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstHeader->max_cpu_usage_ms = (uint8_t)pbData[iOffset];
+	iOffset += sizeof(pstHeader->max_cpu_usage_ms);
+
+	// 	unsigned_int		delay_sec; /// number of seconds to delay this transaction for during which it may be canceled.
+	iRtn = eos_util_tx_uint_get(pbData + iOffset, nDataLen - iOffset, &pstHeader->delay_sec, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	if (pnProcessDataLen)
+	{
+		*pnProcessDataLen = iOffset;
+	}
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
+
+int eos_util_tx_header_set(const eos_transaction_header * const pstHeader, unsigned char * const pbData, size_t * const pnDataLen)
+{
+	int	iRtn = -1;
+
+	size_t			i = 0, iOffset = 0, iProcessLen = 0;
+	const int32_t	iFilterMask = 0xff;
+
+	if (!pstHeader || !pnDataLen)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	// 	time_point_sec		expiration;   ///< the time at which a transaction expires
+	if (pbData)
+	{
+		if ((*pnDataLen - iOffset) < sizeof(pstHeader->expiration))
+		{
+			iRtn = -1;
+			goto END;
+		}
+		for (i = 0; i < sizeof(pstHeader->expiration); i++)
+		{
+			pbData[iOffset + i] = (unsigned char)((pstHeader->expiration >> (i * 8)) & iFilterMask);
+		}
+	}
+	iOffset += sizeof(pstHeader->expiration);
+
+	// 	uint16_t			ref_block_num; ///< specifies a block num in the last 2^16 blocks.
+	if (pbData)
+	{
+		if ((*pnDataLen - iOffset) < sizeof(pstHeader->ref_block_num))
+		{
+			iRtn = -1;
+			goto END;
+		}
+		for (i = 0; i < sizeof(pstHeader->ref_block_num); i++)
+		{
+			pbData[iOffset + i] = (unsigned char)((pstHeader->ref_block_num >> (i * 8)) & iFilterMask);
+		}
+	}
+	iOffset += sizeof(pstHeader->ref_block_num);
+
+	// 	uint32_t			ref_block_prefix; ///< specifies the lower 32 bits of the block id at get_ref_blocknum
+	if (pbData)
+	{
+		if ((*pnDataLen - iOffset) < sizeof(pstHeader->ref_block_prefix))
+		{
+			iRtn = -1;
+			goto END;
+		}
+		for (i = 0; i < sizeof(pstHeader->ref_block_prefix); i++)
+		{
+			pbData[iOffset + i] = (unsigned char)((pstHeader->ref_block_prefix >> (i * 8)) & iFilterMask);
+		}
+	}
+	iOffset += sizeof(pstHeader->ref_block_prefix);
+
+	// 	unsigned_int		max_net_usage_words; /// upper limit on total network bandwidth (in 8 byte words) billed for this transaction
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_uint_set(&pstHeader->max_net_usage_words, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_uint_set(&pstHeader->max_net_usage_words, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	uint8_t				max_cpu_usage_ms; /// upper limit on the total CPU time billed for this transaction
+	if (pbData)
+	{
+		if ((*pnDataLen - iOffset) < sizeof(pstHeader->max_cpu_usage_ms))
+		{
+			iRtn = -1;
+			goto END;
+		}
+		pbData[iOffset] = (unsigned char)(pstHeader->max_cpu_usage_ms);
+	}
+	iOffset += sizeof(pstHeader->max_cpu_usage_ms);
+
+	// 	unsigned_int		delay_sec; /// number of seconds to delay this transaction for during which it may be canceled.
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_uint_set(&pstHeader->delay_sec, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_uint_set(&pstHeader->delay_sec, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	*pnDataLen = iOffset;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 int eos_util_tx_header_from_json(const cJSON * const pJson, eos_transaction_header * const pstHeader);
 
