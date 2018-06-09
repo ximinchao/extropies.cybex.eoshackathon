@@ -36,23 +36,348 @@ int eos_util_tx_action_clear(eos_action * const pstAction);
 
 int eos_util_tx_action_from_json(const cJSON * const pJson, eos_action * const pstAction);
 
-int eos_util_tx_trans_ext_get(const unsigned char * const pbData, const size_t nDataLen, eos_transaction_extension * const pstTransExt, size_t * const pnProcessDataLen);
+int eos_util_tx_trans_ext_get(const unsigned char * const pbData, const size_t nDataLen, eos_transaction_extension * const pstTransExt, size_t * const pnProcessDataLen)
+{
+	int	iRtn = -1;
 
-int eos_util_tx_trans_ext_set(const eos_transaction_extension * const pstTransExt, unsigned char * const pbData, size_t * const pnDataLen);
+	size_t	i = 0, iOffset = 0, iProcessLen = 0;
 
-int eos_util_tx_trans_ext_clear(eos_transaction_extension * const pstTransExt);
+	if (!pbData || !nDataLen || !pstTransExt)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	eos_util_tx_trans_ext_clear(pstTransExt);
+
+	iOffset = 0;
+
+	// 	uint16_t		ext_type;
+	if (sizeof(pstTransExt->ext_type) > (nDataLen - iOffset))
+	{
+		iRtn = -1;
+		goto END;
+	}
+	pstTransExt->ext_type = 0;
+	for (i = 0; i < sizeof(pstTransExt->ext_type); i++)
+	{
+		pstTransExt->ext_type |= ((uint16_t)pbData[iOffset + i]) << (i * 8);
+	}
+	iOffset += sizeof(pstTransExt->ext_type);
+
+	// 	unsigned_int	ext_value_count;
+	iRtn = eos_util_tx_uint_get(pbData + iOffset, nDataLen - iOffset, &pstTransExt->ext_value_count, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	char			*ext_value;
+	if (pstTransExt->ext_value_count > 0)
+	{
+		if (((size_t)pstTransExt->ext_value_count) > (nDataLen - iOffset))
+		{
+			iRtn = -1;
+			goto END;
+		}
+
+		pstTransExt->ext_value = (char *)malloc((size_t)(pstTransExt->ext_value_count));
+		if (pstTransExt->ext_value == 0)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memset(pstTransExt->ext_value, 0, (size_t)(pstTransExt->ext_value_count));
+
+		memcpy(pstTransExt->ext_value, pbData + iOffset, (size_t)(pstTransExt->ext_value_count));
+		iOffset += (size_t)(pstTransExt->ext_value_count);
+	}
+
+	if (pnProcessDataLen)
+	{
+		*pnProcessDataLen = iOffset;
+	}
+
+	iRtn = 0;
+END:
+	if (iRtn != 0)
+	{
+		eos_util_tx_trans_ext_clear(pstTransExt);
+	}
+	return iRtn;
+}
+
+int eos_util_tx_trans_ext_set(const eos_transaction_extension * const pstTransExt, unsigned char * const pbData, size_t * const pnDataLen)
+{
+	int	iRtn = -1;
+
+	const int32_t	iFilterMask = 0xff;
+	size_t			i = 0, iOffset = 0, iProcessLen = 0;
+
+	if (!pstTransExt || !pnDataLen)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	// 	uint16_t		ext_type;
+	if (pbData)
+	{
+		if ((*pnDataLen - iOffset) < sizeof(pstTransExt->ext_type))
+		{
+			iRtn = -1;
+			goto END;
+		}
+		for (i = 0; i < sizeof(pstTransExt->ext_type); i++)
+		{
+			pbData[iOffset + i] = (unsigned char)((pstTransExt->ext_type >> (i * 8)) & iFilterMask);
+		}
+	}
+	iOffset += sizeof(pstTransExt->ext_type);
+
+	// 	unsigned_int	ext_value_count;
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_uint_set(&pstTransExt->ext_value_count, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_uint_set(&pstTransExt->ext_value_count, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	char			*ext_value;
+	if (pbData && pstTransExt->ext_value_count)
+	{
+		if ((*pnDataLen - iOffset) < (size_t)pstTransExt->ext_value_count)
+		{
+			iRtn = -1;
+			goto END;
+		}
+		memcpy(pbData + iOffset, pstTransExt->ext_value, (size_t)(pstTransExt->ext_value_count));
+	}
+	iOffset += (size_t)(pstTransExt->ext_value_count);
+
+	*pnDataLen = iOffset;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
+
+int eos_util_tx_trans_ext_clear(eos_transaction_extension * const pstTransExt)
+{
+	int	iRtn = -1;
+
+	size_t	i = 0;
+
+	if (!pstTransExt)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	// 	uint16_t		ext_type;
+	pstTransExt->ext_type = 0;
+
+	// 	char			*ext_value;
+	if (pstTransExt->ext_value)
+	{
+		free(pstTransExt->ext_value);
+		pstTransExt->ext_value = 0;
+	}
+	// 	unsigned_int	ext_value_count;
+	pstTransExt->ext_value_count = 0;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 int eos_util_tx_trans_ext_from_json(const cJSON * const pJson, eos_transaction_extension * const pstTransExt);
 
-int eos_util_tx_permission_get(const unsigned char * const pbData, const size_t nDataLen, eos_permission_level * const pstPermission, size_t * const pnProcessDataLen);
+int eos_util_tx_permission_get(const unsigned char * const pbData, const size_t nDataLen, eos_permission_level * const pstPermission, size_t * const pnProcessDataLen)
+{
+	int	iRtn = -1;
 
-int eos_util_tx_permission_set(const eos_permission_level * const pstPermission, unsigned char * const pbData, size_t * const pnDataLen);
+	size_t	i = 0, iOffset = 0, iProcessLen = 0;
+
+	if (!pbData || !nDataLen || !pstPermission)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	// 	char	actor[EOS_NAME_MAX_LEN];
+	iRtn = eos_util_tx_name_get(pbData + iOffset, nDataLen - iOffset, pstPermission->actor, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	char	permission[EOS_NAME_MAX_LEN];
+	iRtn = eos_util_tx_name_get(pbData + iOffset, nDataLen - iOffset, pstPermission->permission, &iProcessLen);
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	if (pnProcessDataLen)
+	{
+		*pnProcessDataLen = iOffset;
+	}
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
+
+int eos_util_tx_permission_set(const eos_permission_level * const pstPermission, unsigned char * const pbData, size_t * const pnDataLen)
+{
+	int	iRtn = -1;
+
+	size_t			i = 0, iOffset = 0, iProcessLen = 0;
+
+	if (!pstPermission || !pnDataLen)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	// 	char	actor[EOS_NAME_MAX_LEN];
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_name_set(pstPermission->actor, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_name_set(pstPermission->actor, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	// 	char	permission[EOS_NAME_MAX_LEN];
+	if (pbData)
+	{
+		iProcessLen = (*pnDataLen - iOffset);
+		iRtn = eos_util_tx_name_set(pstPermission->permission, pbData + iOffset, &iProcessLen);
+	}
+	else
+	{
+		iRtn = eos_util_tx_name_set(pstPermission->permission, 0, &iProcessLen);
+	}
+	if (iRtn)
+	{
+		iRtn = -1;
+		goto END;
+	}
+	iOffset += iProcessLen;
+
+	*pnDataLen = iOffset;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 int eos_util_tx_permission_from_json(const cJSON * const pJson, eos_permission_level * const pstPermission);
 
-int eos_util_tx_uint_get(const unsigned char * const pbData, const size_t nDataLen, unsigned_int * const pstUint, size_t * const pnProcessDataLen);
+int eos_util_tx_uint_get(const unsigned char * const pbData, const size_t nDataLen, unsigned_int * const pstUint, size_t * const pnProcessDataLen)
+{
+	int	iRtn = -1;
 
-int eos_util_tx_uint_set(const unsigned_int * const pstUint, unsigned char * const pbData, size_t * const pnDataLen);
+	size_t			i = 0, iOffset = 0;
+	uint64_t		v = 0;
+	unsigned char	b = 0;
+	uint8_t			by = 0;
+
+	if (!pbData || !nDataLen || !pstUint)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	v = 0;
+	by = 0;
+	do
+	{
+		b = pbData[iOffset++];
+		v |= (uint32_t)(b & 0x7f) << by;
+		by += 7;
+	} while (b & 0x80);
+	*pstUint = (unsigned_int)(v);
+
+	if (pnProcessDataLen)
+	{
+		*pnProcessDataLen = iOffset;
+	}
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
+
+int eos_util_tx_uint_set(const unsigned_int * const pstUint, unsigned char * const pbData, size_t * const pnDataLen)
+{
+	int	iRtn = -1;
+
+	size_t			iOffset = 0;
+	uint64_t		val = 0;
+	uint8_t			b = 0;
+
+	if (!pstUint || !pnDataLen)
+	{
+		iRtn = -1;
+		goto END;
+	}
+
+	iOffset = 0;
+
+	val = *pstUint;
+	do
+	{
+		b = ((uint8_t)val) & 0x7f;
+		val >>= 7;
+		b |= ((val > 0) << 7);
+
+		if (pbData)
+		{
+			pbData[iOffset] = b;
+		}
+		iOffset += 1;
+	} while (val);
+
+	*pnDataLen = iOffset;
+
+	iRtn = 0;
+END:
+	return iRtn;
+}
 
 int eos_util_tx_name_get(const unsigned char * const pbData, const size_t nDataLen, char szName[EOS_NAME_MAX_LEN], size_t * const pnProcessDataLen)
 {
