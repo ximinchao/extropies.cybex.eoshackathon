@@ -191,7 +191,7 @@ class consale : public eosio::contract {
 		//@abi action
 		void regist(const string& conf_name, const account_name organizer, const account_name attendee, const public_key& attend_pub)
 		{
-			require_auth( attendee );
+			//require_auth( attendee );
 
 			//get conf
 			confs	cur_confs(_self, _self);
@@ -248,62 +248,212 @@ class consale : public eosio::contract {
 		//@abi action
 		void withdraw(const string& conf_name, const account_name organizer, const account_name attendee)
 		{
+			require_auth( attendee );
+
+			//get conf
+			confs	cur_confs(_self, _self);
+			auto	idx = cur_confs.template get_index<N(conf_name_hash)>();
+			key256	dest_hash = conference::get_key256_from_string(conf_name);
+			auto	cur_conf_itr = idx.find(dest_hash);
+			uint8_t	bFound = 0;
+
+			while ((cur_conf_itr != idx.end()) && (conference::get_key256_from_checksum256(cur_conf_itr->conf_name_hash) == dest_hash))
+			{
+				if ((cur_conf_itr->conf_name == conf_name) && (cur_conf_itr->organizer == organizer))
+				{
+					bFound = 1;
+					break;
+				}
+				++cur_conf_itr; //MUST NOT BE cur_conf_itr++, which won't change cur_conf_itr's value
+			}
+
+			eosio_assert(bFound != 0, "conference not found");
+
+			print("Conference id: ", cur_conf_itr->id, ", ", "Conference name: ", cur_conf_itr->conf_name.c_str(), ", ", "Organizer name: ", name{cur_conf_itr->organizer}, ", ", "Fee: ", cur_conf_itr->fee, "\n");
+
+			//check attable
+			attables	cur_attables(_self, _self);
+			auto	reg_idx = cur_attables.template get_index<N(attendee)>();
+			auto	cur_attable_itr = reg_idx.find(attendee);
+
+			bFound = 0;
+			while ((cur_attable_itr != reg_idx.end()) && (cur_attable_itr->attendee == attendee))
+			{
+				if (cur_attable_itr->conf_id == cur_conf_itr->id)
+				{
+					bFound = 1;
+					break;
+				}
+				++cur_attable_itr; //MUST NOT BE cur_attable_itr++, which won't change cur_attable_itr's value
+			}
+
+			eosio_assert(bFound == 1, "conference not registered yet");
+			eosio_assert((cur_attable_itr->fee_locked == false), "conference already checked in");
+			action	act(
+					permission_level{ _self, N(active) }, 
+					N(eosio.token), 
+					N(transfer), 
+					std::make_tuple( _self, attendee, cur_attable_itr->fee, std::string("") )
+					);
+			act.send();
+
+			reg_idx.erase(cur_attable_itr);
 		}
 
 		//@abi action
 		void getreg(const account_name attendee)
 		{
-		}
+			attables	cur_attables(_self, _self);
+			auto	reg_idx = cur_attables.template get_index<N(attendee)>();
+			auto	cur_attable_itr = reg_idx.find(attendee);
 
-		//@abi action
-		void checkintest(const string& conf_name, const account_name organizer, const account_name attendee, const signature attend_sig, const bytes testdata)
-		{
+			confs	cur_confs(_self, _self);
 
-		}
-
-		int uint_set(const unsigned_int * const pstUint, unsigned char * const pbData, size_t * const pnDataLen)
-		{
-			int	iRtn = -1;
-
-			size_t			iOffset = 0;
-			uint64_t		val = 0;
-			uint8_t			b = 0;
-
-			if (!pstUint || !pnDataLen)
+			while ((cur_attable_itr != reg_idx.end()) && (cur_attable_itr->attendee == attendee))
 			{
-				iRtn = -1;
-				goto END;
+				auto	cur_conf_itr = cur_confs.find(cur_attable_itr->conf_id);
+				while ((cur_conf_itr != cur_confs.end()) && (cur_attable_itr->conf_id == cur_conf_itr->id))
+				{
+					print("Conference id: ", cur_conf_itr->id, ", ", "Conference name: ", cur_conf_itr->conf_name.c_str(), ", ", "Organizer name: ", name{cur_conf_itr->organizer}, ", ", "Fee: ", cur_conf_itr->fee, "\n");
+					++cur_conf_itr; //MUST NOT BE cur_conf_itr++, which won't change cur_conf_itr's value
+				}
+
+				print("attendee fee locked: ");
+				print((cur_attable_itr->fee_locked == false) ? ("false") : ("true"), "\n");
+
+				print("attendee public key: ");
+				printhex(cur_attable_itr->attend_pub.data, sizeof(cur_attable_itr->attend_pub.data));
+				print("\n");
+
+				print("attendee signature: ");
+				printhex(cur_attable_itr->attend_sig.data, sizeof(cur_attable_itr->attend_sig.data));
+				print("\n");
+
+				//print("attendee timestamp: ", cur_attable_itr->attend_timestamp);
+				print("attendee timestamp: ", cur_attable_itr->attend_timestamp.sec_since_epoch(), "\n");
+
+				++cur_attable_itr; //MUST NOT BE cur_attable_itr++, which won't change cur_attable_itr's value
 			}
 
-			iOffset = 0;
-
-			val = *pstUint;
-			do
+			//@abi action
+			void checkintest(const string& conf_name, const account_name organizer, const account_name attendee, const signature attend_sig, const bytes testdata)
 			{
-				b = ((uint8_t)val) & 0x7f;
-				val >>= 7;
-				b |= ((val > 0) << 7);
+				require_auth( attendee );
 
-				if (pbData)
+				//get conf
+				confs	cur_confs(_self, _self);
+				auto	idx = cur_confs.template get_index<N(conf_name_hash)>();
+				key256	dest_hash = conference::get_key256_from_string(conf_name);
+				auto	cur_conf_itr = idx.find(dest_hash);
+				uint8_t	bFound = 0;
+
+				while ((cur_conf_itr != idx.end()) && (conference::get_key256_from_checksum256(cur_conf_itr->conf_name_hash) == dest_hash))
 				{
-					pbData[iOffset] = b;
+					if ((cur_conf_itr->conf_name == conf_name) && (cur_conf_itr->organizer == organizer))
+					{
+						bFound = 1;
+						break;
+					}
+					++cur_conf_itr; //MUST NOT BE cur_conf_itr++, which won't change cur_conf_itr's value
 				}
-				iOffset += 1;
-			} while (val);
 
-			*pnDataLen = iOffset;
+				eosio_assert(bFound != 0, "conference not found");
 
-			iRtn = 0;
+				print("Conference id: ", cur_conf_itr->id, ", ", "Conference name: ", cur_conf_itr->conf_name.c_str(), ", ", "Organizer name: ", name{cur_conf_itr->organizer}, ", ", "Fee: ", cur_conf_itr->fee, "\n");
+
+				//check attable
+				attables	cur_attables(_self, _self);
+				auto	reg_idx = cur_attables.template get_index<N(attendee)>();
+				auto	cur_attable_itr = reg_idx.find(attendee);
+
+				bFound = 0;
+				while ((cur_attable_itr != reg_idx.end()) && (cur_attable_itr->attendee == attendee))
+				{
+					if (cur_attable_itr->conf_id == cur_conf_itr->id)
+					{
+						bFound = 1;
+						break;
+					}
+					++cur_attable_itr; //MUST NOT BE cur_attable_itr++, which won't change cur_attable_itr's value
+				}
+
+				eosio_assert(bFound == 1, "conference not registered yet");
+
+				//eosio_assert(cur_attable_itr->fee_locked == false, "conference already checked in");
+
+				//verify signature
+				checksum256 desthash;
+
+				sha256((char *)testdata.data(), testdata.size(), &desthash);
+
+				print("testdata: ");
+				printhex(testdata.data(), testdata.size());
+				print("\n");
+
+				print("hash: ");
+				printhex(desthash.hash, sizeof(desthash.hash));
+				print("\n");
+
+				print("public key: ");
+				printhex(cur_attable_itr->attend_pub.data, sizeof(cur_attable_itr->attend_pub.data));
+				print("\n");
+
+				print("signature: ");
+				printhex(attend_sig.data, sizeof(attend_sig.data));
+				print("\n");
+
+				public_key pubkey;
+				recover_key( &desthash, (const char*)(attend_sig.data), sizeof(attend_sig.data), (char*)(pubkey.data), sizeof(pubkey.data) );
+				//assert_recover_key ( &hash, (const char*)(attend_sig.data), sizeof(attend_sig.data), (const char*)(cur_attable_itr->attend_pub.data), sizeof(cur_attable_itr->attend_pub.data));
+
+				print("recovered public key: ");
+				printhex(pubkey.data, sizeof(pubkey.data));
+				print("\n");
+			}
+
+			int uint_set(const unsigned_int * const pstUint, unsigned char * const pbData, size_t * const pnDataLen)
+			{
+				int	iRtn = -1;
+
+				size_t			iOffset = 0;
+				uint64_t		val = 0;
+				uint8_t			b = 0;
+
+				if (!pstUint || !pnDataLen)
+				{
+					iRtn = -1;
+					goto END;
+				}
+
+				iOffset = 0;
+
+				val = *pstUint;
+				do
+				{
+					b = ((uint8_t)val) & 0x7f;
+					val >>= 7;
+					b |= ((val > 0) << 7);
+
+					if (pbData)
+					{
+						pbData[iOffset] = b;
+					}
+					iOffset += 1;
+				} while (val);
+
+				*pnDataLen = iOffset;
+
+				iRtn = 0;
 END:
-			return iRtn;
-		}
+				return iRtn;
+			}
 
-		//@abi action
-		void checkin(const string& conf_name, const account_name organizer, const account_name attendee, const signature attend_sig)
-		{
+			//@abi action
+			void checkin(const string& conf_name, const account_name organizer, const account_name attendee, const signature attend_sig)
+			{
 
-		}
-};
+			}
+		};
 
-EOSIO_ABI( consale, (create)(getlist)(cancel)(getinfo)(regist)(withdraw)(getreg)(checkintest)(checkin) )
+		EOSIO_ABI( consale, (create)(getlist)(cancel)(getinfo)(regist)(withdraw)(getreg)(checkintest)(checkin) )
 
