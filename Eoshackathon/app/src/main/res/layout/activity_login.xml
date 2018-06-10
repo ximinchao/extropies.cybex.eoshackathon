@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    >
+
+    <TextView
+        android:id="@+id/CoString2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_marginTop="10dp"
+        android:textSize="20sp"
+        android:text="Stay connected"
+        android:textColor="@color/colorBlue"
+        />
+
+    <TextView
+        android:id="@+id/CoString1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@id/CoString2"
+        android:layout_marginTop="20dp"
+        android:textSize="20sp"
+        android:text="Be decentrialised"
+        android:textColor="@color/colorBlue"
+        />
+    <TextView
+        android:id="@+id/CoName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@id/CoString1"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:text="Extropies"
+        android:textColor="@color/colorBlue"
+        />
+
+
+
+    <ImageView
+        android:id="@+id/logoImage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="30sp"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@id/CoName"
+        android:src="@mipmap/logo" />
+
+
+
+    <EditText
+        android:id="@+id/loginUserName"
+        android:layout_width="150sp"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/loginUserPassword"
+        android:layout_centerHorizontal="true"
+        android:hint="Account"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="1sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:singleLine="true"
+        />
+
+    <EditText
+        android:id="@+id/loginUserPassword"
+        android:layout_width="150sp"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/cardWalletCheckbox"
+        android:layout_centerHorizontal="true"
+        android:hint="Password"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="1sp"
+        android:gravity="center"
+        android:inputType="textPassword"
+        />
+    <CheckBox
+        android:id="@+id/cardWalletCheckbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/loginBtn"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="10sp"
+        android:text="BladeX"
+        android:checked="true"
+        />
+    <Button
+        android:id="@+id/loginBtn"
+        android:layout_width="150sp"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20sp"
+        android:layout_alignParentBottom="true"
+        android:text="Login"
+        android:layout_gravity="center_horizontal"
+        android:textAllCaps="false"
+        android:textSize="18sp"
+        android:background="@drawable/button_gray"
+        style="?android:attr/borderlessButtonStyle"
+        android:onClick="loginBtnClick"
+        />
+
+</RelativeLayout>

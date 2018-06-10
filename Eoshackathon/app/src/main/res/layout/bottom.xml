@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="60sp"
+    android:orientation="horizontal"
+    >
+
+    <LinearLayout
+        android:id="@+id/id_tab_assets"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+
+        >
+        <ImageButton
+            android:id="@+id/id_tab_assets_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@mipmap/tab_images_assetsselected"
+            android:background="#00000000"
+            android:clickable="false"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Asset"/>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/id_tab_conf"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        >
+        <ImageButton
+            android:id="@+id/id_tab_conf_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#00000000"
+            android:clickable="false"
+            android:src="@mipmap/tab_images_conf"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Action"/>
+
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/id_tab_discovery"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        >
+        <ImageButton
+            android:id="@+id/id_tab_discovery_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#00000000"
+            android:clickable="false"
+            android:src="@mipmap/tab_images_discovery"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="News"/>
+
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/id_tab_my"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        >
+        <ImageButton
+            android:id="@+id/id_tab_my_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="#00000000"
+            android:clickable="false"
+            android:src="@mipmap/tab_images_my"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Me"/>
+
+    </LinearLayout>
+</LinearLayout>

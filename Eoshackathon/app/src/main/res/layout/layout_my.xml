@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="5sp"
+    >
+
+    <TextView
+        android:id="@+id/settingTag"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:layout_marginTop="20sp"
+        android:layout_marginBottom="20sp"
+        android:text="Setting"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        />
+    <Button
+        android:id="@+id/setAccountBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/settingTag"
+        android:text="Account"
+        android:textAllCaps="false"
+        android:background="@drawable/button_gray2"
+        android:layout_marginTop="10sp"
+        style="?android:attr/borderlessButtonStyle"
+        />
+
+</RelativeLayout>

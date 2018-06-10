@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+    android:layout_height="100sp">
+
+    <TextView
+        android:id="@+id/confName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_marginTop="8sp"
+        android:text="conf_name"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:textColor="@color/colorWhite"
+        />
+    <TextView
+        android:id="@+id/confId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="5sp"
+        android:layout_marginBottom="5sp"
+        android:layout_marginStart="10sp"
+        android:text="conf_id"
+        android:textColor="@color/colorWhite"
+        />
+
+    <TextView
+        android:id="@+id/confOrganizer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="5sp"
+        android:layout_marginBottom="5sp"
+        android:text="conf_Organizer"
+        android:textColor="@color/colorWhite"
+        />
+    <TextView
+        android:id="@+id/confFee"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="5sp"
+        android:layout_marginBottom="5sp"
+        android:layout_marginEnd="10sp"
+        android:text="conf_fee"
+        android:textColor="@color/colorWhite"
+        />
+
+</RelativeLayout>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <SeekBar
+        android:id="@+id/webviewProgressBar"
+        android:layout_width="match_parent"
+        android:layout_height="4sp"
+        android:background="#80ccc9c9"
+        android:thumb="@null"
+        android:max="100"
+        />
+    <WebView
+        android:id="@+id/discoveryWebview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        >
+
+    </WebView>
+
+</LinearLayout>

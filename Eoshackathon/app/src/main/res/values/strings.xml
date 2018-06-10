@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Eoshackathon</string>
+
+    <string name="notifyTitle">Tips</string>
+    <string name="gpsNotifyMsg">当前手机扫描蓝牙需要打开定位功能。</string>
+    <string name="setting">前往设置</string>
+    <string name="cancel">Cancel</string>
+</resources>

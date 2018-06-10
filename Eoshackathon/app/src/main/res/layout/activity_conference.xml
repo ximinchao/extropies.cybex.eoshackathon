@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="5sp">
+
+    <TextView
+        android:id="@+id/attendee"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20sp"
+        android:text="bob"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        />
+    <!--<TextView-->
+    <!--android:id="@+id/attendeeAddress"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:layout_below="@id/attendee"-->
+    <!--android:gravity="center"-->
+    <!--android:text=""-->
+    <!--android:textSize="15sp"-->
+    <!--/>-->
+
+    <RelativeLayout
+        android:id="@+id/confTag"
+        android:layout_width="match_parent"
+        android:layout_height="100sp"
+        android:layout_below="@id/attendee"
+        android:layout_marginTop="20sp"
+        android:background="@mipmap/conf_background22"
+        >
+        <TextView
+            android:id="@+id/buyConfName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginTop="1sp"
+            android:text="conf_name"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="@color/colorWhite"
+            />
+        <TextView
+            android:id="@+id/buyConfId"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_marginTop="5sp"
+            android:layout_marginBottom="1sp"
+            android:layout_marginStart="10sp"
+            android:text="conf_id"
+            android:textColor="@color/colorWhite"
+            />
+
+        <TextView
+            android:id="@+id/buyConfOrganizer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="5sp"
+            android:layout_marginBottom="1sp"
+            android:text="conf_Organizer"
+            android:textColor="@color/colorWhite"
+            />
+        <TextView
+            android:id="@+id/buyConfFee"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="5sp"
+            android:layout_marginBottom="1sp"
+            android:layout_marginEnd="10sp"
+            android:text="conf_fee"
+            android:textColor="@color/colorWhite"
+            />
+    </RelativeLayout>
+
+    <!--<ImageView-->
+    <!--android:id="@+id/confImage"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="300sp"-->
+    <!--android:layout_alignParentBottom="true"-->
+    <!--android:visibility="gone"-->
+    <!--/>-->
+    <Button
+        android:id="@+id/confBuy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/button_blue"
+        android:layout_marginBottom="10sp"
+        android:text="Buy"
+        android:textAllCaps="false"
+        android:visibility="gone"
+        android:onClick="buyBtnClick"
+        />
+    <Button
+        android:id="@+id/loadQRcodeToCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/button_blue"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="10sp"
+        android:text="ticket show on card"
+        android:textAllCaps="false"
+        android:visibility="gone"
+        android:onClick="loadQRcodeToCardBtnClick"
+        />
+
+</RelativeLayout>

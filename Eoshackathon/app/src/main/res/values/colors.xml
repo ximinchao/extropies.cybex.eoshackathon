@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="colorWhite">#ffffff</color>
+    <color name="colorGray">#DCDCDC</color>
+    <color name="colorBlue">#63a4d9</color>
+
+    <color name="bbutton_blue_pressed">#d2322dff</color>
+    <color name="bbutton_blue_edge">#d43f3aff</color>
+    <color name="bbutton_blue_disabled">#00000000</color>
+    <color name="bbutton_blue_disabled_edge">#DCDCDC</color>
+    <color name="bbutton_blue">#d9534fff</color>
+</resources>
