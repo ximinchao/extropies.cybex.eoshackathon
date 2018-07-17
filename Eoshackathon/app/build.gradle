@@ -30,8 +30,8 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:0.5'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:2.2.2'
 
-    compile 'com.google.zxing:core:3.2.1'
-    compile 'com.journeyapps:zxing-android-embedded:3.3.0'
-    compile(name: 'ewalletutil-debug', ext: 'aar')
-    compile files('libs/jsoup-1.10.3.jar')
+    implementation  'com.google.zxing:core:3.2.1'
+    implementation 'com.journeyapps:zxing-android-embedded:3.3.0'
+    implementation(name: 'ewalletutil-debug', ext: 'aar')
+    implementation files('libs/jsoup-1.10.3.jar')
 }
